@@ -17,17 +17,20 @@ jobs:
         run: |
           git clone https://github.com/markovicaleksandar/linux_ideacentre_01Q8X10.git repo
 
-      - name: Run Build Script
+      - name: List Repository Contents & Run Script
         run: |
           cd repo
+          ls -la
           chmod +x *.sh || true
-          # Execute the primary script provided in the repository
-          if [ -f "build_kernel.sh" ]; then
-            ./build_kernel.sh
-          elif [ -f "build.sh" ]; then
-            ./build.sh
+          
+          # Find any .sh script in the directory and run the first one found
+          SCRIPT=$(ls *.sh 2>/dev/null | head -n 1)
+          if [ -n "$SCRIPT" ]; then
+            echo "Executing script: $SCRIPT"
+            ./"$SCRIPT"
           else
-            bash -c "$(ls *.sh | head -n 1)"
+            echo "No shell script found! Checking repository structure..."
+            exit 1
           fi
 
       - name: Upload Compiled Files as Artifacts

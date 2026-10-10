@@ -13,7 +13,7 @@ jobs:
           sudo apt update
           sudo apt install -y build-essential bison flex libssl-dev libelf-dev bc cpio debhelper git gcc-aarch64-linux-gnu g++-aarch64-linux-gnu device-tree-compiler
 
-      - name: Clone Custom Repository
+      - name: Clone Custom IdeaCentre Repository
         run: |
           git clone https://github.com/markovicaleksandar/linux_ideacentre_01Q8X10.git repo
 
@@ -21,14 +21,13 @@ jobs:
         run: |
           cd repo
           chmod +x *.sh || true
-          if [ -f "build.sh" ]; then
+          # Execute the primary script provided in the repository
+          if [ -f "build_kernel.sh" ]; then
+            ./build_kernel.sh
+          elif [ -f "build.sh" ]; then
             ./build.sh
-          elif [ -f "make.sh" ]; then
-            ./make.sh
           else
-            echo "Running direct build commands..."
-            make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig
-            make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- bindeb-pkg
+            bash -c "$(ls *.sh | head -n 1)"
           fi
 
       - name: Upload Compiled Files as Artifacts
@@ -38,4 +37,5 @@ jobs:
           path: |
             repo/**/*.dtb
             repo/**/*.deb
+            repo/**/*.bin
             *.deb

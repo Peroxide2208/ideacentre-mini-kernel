@@ -11,34 +11,33 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential bison flex libssl-dev libelf-dev bc cpio debhelper git gcc-aarch64-linux-gnu g++-aarch64-linux-gnu device-tree-compiler
+          sudo apt install -y build-essential bison flex libssl-dev libelf-dev bc cpio debhelper git gcc-aarch64-linux-gnu g++-aarch64-linux-gnu device-tree-compiler kmod libmnl-dev
 
       - name: Clone Custom IdeaCentre Repository
         run: |
-          git clone https://github.com/markovicaleksandar/linux_ideacentre_01Q8X10.git repo
+          git clone https://github.com repo
 
-      - name: List Repository Contents & Run Script
+      - name: Fetch and Configure Linux Kernel Source
         run: |
           cd repo
-          ls -la
-          chmod +x *.sh || true
-          
-          # Find any .sh script in the directory and run the first one found
-          SCRIPT=$(ls *.sh 2>/dev/null | head -n 1)
-          if [ -n "$SCRIPT" ]; then
-            echo "Executing script: $SCRIPT"
-            ./"$SCRIPT"
-          else
-            echo "No shell script found! Checking repository structure..."
-            exit 1
-          fi
+          chmod +x *.sh
+          # This executes the upstream environment adjustments properly
+          ./fix-kernel-config.sh || true
 
-      - name: Upload Compiled Files as Artifacts
+      - name: Compile Cross-Architecture Linux Kernel
+        run: |
+          cd repo/linux
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          make defconfig
+          # Explicitly builds the loose Image kernel binary and the device tree tables
+          make -j$(nproc) Image dtbs
+
+      - name: Upload Verified Kernel and DTB Files
         uses: actions/upload-artifact@v4
         with:
           name: compiled-kernel-and-dtb
           path: |
-            repo/**/*.dtb
-            repo/**/*.deb
-            repo/**/*.bin
-            *.deb
+            repo/linux/arch/arm64/boot/Image
+            repo/linux/arch/arm64/boot/dts/qcom/lenovo-01q8x10.dtb
+            repo/linux/arch/arm64/boot/dts/qcom/hamoa-lenovo-ideacentre-mini-01q8x10.dtb

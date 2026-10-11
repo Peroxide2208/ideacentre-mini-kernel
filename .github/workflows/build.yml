@@ -1,4 +1,4 @@
-name: Build IdeaCentre Custom Kernel
+name: Build IdeaCentre Custom Kernel Loose Binaries
 
 on:
   workflow_dispatch:
@@ -17,27 +17,29 @@ jobs:
         run: |
           git clone https://github.com repo
 
-      - name: Fetch and Configure Linux Kernel Source
+      - name: Patch Configuration
         run: |
           cd repo
           chmod +x *.sh
-          # This executes the upstream environment adjustments properly
           ./fix-kernel-config.sh || true
 
-      - name: Compile Cross-Architecture Linux Kernel
+      - name: Force Direct Architecture Kernel Compilation
         run: |
           cd repo/linux
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           make defconfig
-          # Explicitly builds the loose Image kernel binary and the device tree tables
+          # Explicitly compiles the loose uncompressed Image file and the dtbs map
           make -j$(nproc) Image dtbs
+          
+          # Move the loose binaries to a clean staging root folder for direct recovery
+          cp arch/arm64/boot/Image ../../lenovo_working_kernel.bin
+          cp arch/arm64/boot/dts/qcom/hamoa-lenovo-ideacentre-mini-01q8x10.dtb ../../lenovo_ideacentre.dtb
 
-      - name: Upload Verified Kernel and DTB Files
+      - name: Package Raw Files for Direct USB Injection
         uses: actions/upload-artifact@v4
         with:
           name: compiled-kernel-and-dtb
           path: |
-            repo/linux/arch/arm64/boot/Image
-            repo/linux/arch/arm64/boot/dts/qcom/lenovo-01q8x10.dtb
-            repo/linux/arch/arm64/boot/dts/qcom/hamoa-lenovo-ideacentre-mini-01q8x10.dtb
+            lenovo_working_kernel.bin
+            lenovo_ideacentre.dtb
